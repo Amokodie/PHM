@@ -59,6 +59,8 @@ _ASSET_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 ASSETS_README = os.path.join(_ASSET_DIR, "readme_cmapss.txt")
 # Optional: place the PHM08 paper PDF here for an extra download button (same citation as readme).
 OPTIONAL_PAPER_PDF = os.path.join(_ASSET_DIR, "PHM08_Damage_Propagation_Modeling.pdf")
+LOGO_BEIHANG = os.path.join(_ASSET_DIR, "beihang_university_logo.png")
+LOGO_RCSSTEAP = os.path.join(_ASSET_DIR, "rcssteap_logo.png")
 
 
 @st.cache_data(show_spinner=True)
@@ -79,8 +81,34 @@ def _load_cmapss_bundle(root: str, fd: str):
     return train_df, test_df, rul_arr, train_path, test_path, rul_p
 
 
+def render_authors_banner():
+    """Institution logos + team (compact header)."""
+    with st.container(border=True):
+        c_logo1, c_logo2, c_text = st.columns([1.15, 1.15, 2.5])
+        with c_logo1:
+            if os.path.isfile(LOGO_BEIHANG):
+                st.image(LOGO_BEIHANG, use_container_width=True)
+            else:
+                st.caption("Add `assets/beihang_university_logo.png`")
+        with c_logo2:
+            if os.path.isfile(LOGO_RCSSTEAP):
+                st.image(LOGO_RCSSTEAP, use_container_width=True)
+            else:
+                st.caption("Add `assets/rcssteap_logo.png`")
+        with c_text:
+            st.markdown(
+                """
+**Beihang University** · *Beijing University of Aeronautics and Astronautics*  
+**Regional Centre for Space Science and Technology Education in Asia and the Pacific (RCSSTEAP), China**
+
+**Team:** Kodie Amo Kwame (LS2525226) · Sumara Alfred Salifu (LS2525245) · Peta Mimi Precious (LS2525255)
+                """
+            )
+
+
 def pillar_intro():
     st.title("NASA C-MAPSS Turbofan Engine — PHM Dashboard")
+    render_authors_banner()
     st.markdown(
         """
 This dashboard is structured around **three engineering pillars** for briefing a manager on
@@ -504,6 +532,32 @@ def main():
 
     default_root = resolve_cmapss_root()
     with st.sidebar:
+        with st.expander("Authors & institution", expanded=False):
+            c_a, c_b = st.columns(2)
+            with c_a:
+                if os.path.isfile(LOGO_BEIHANG):
+                    st.image(LOGO_BEIHANG, use_container_width=True)
+            with c_b:
+                if os.path.isfile(LOGO_RCSSTEAP):
+                    st.image(LOGO_RCSSTEAP, use_container_width=True)
+            st.markdown(
+                """
+**Beihang University** (北京航空航天大学)  
+*Beijing University of Aeronautics and Astronautics*
+
+**RCSSTEAP (China)** — Regional Centre for Space Science and Technology Education in Asia and the Pacific
+
+---
+
+**Contributors**
+
+| Name | Student ID |
+|------|------------|
+| Kodie Amo Kwame | LS2525226 |
+| Sumara Alfred Salifu | LS2525245 |
+| Peta Mimi Precious | LS2525255 |
+                """
+            )
         st.header("Data source")
         root = st.text_input(
             "Path to CMAPSSData folder",

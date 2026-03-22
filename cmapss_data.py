@@ -63,6 +63,34 @@ def readme_path(root: str) -> str:
 
 ALL_FD_IDS: tuple[str, ...] = ("FD001", "FD002", "FD003", "FD004")
 
+# From NASA readme.txt (scenario metadata for dashboard context)
+FD_SCENARIO_INFO: dict[str, dict[str, str | int]] = {
+    "FD001": {
+        "conditions": "1 (sea level)",
+        "faults": "HPC degradation only",
+        "train_engines": 100,
+        "test_engines": 100,
+    },
+    "FD002": {
+        "conditions": "6 (mixed flight regimes)",
+        "faults": "HPC degradation only",
+        "train_engines": 260,
+        "test_engines": 259,
+    },
+    "FD003": {
+        "conditions": "1 (sea level)",
+        "faults": "HPC + fan degradation",
+        "train_engines": 100,
+        "test_engines": 100,
+    },
+    "FD004": {
+        "conditions": "6 (mixed flight regimes)",
+        "faults": "HPC + fan degradation",
+        "train_engines": 248,
+        "test_engines": 249,
+    },
+}
+
 
 def list_available_datasets(root: str) -> list[str]:
     """FD ids that have at least one of train_FD00x.txt or test_FD00x.txt under root."""

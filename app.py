@@ -18,6 +18,7 @@ from plotly.subplots import make_subplots
 
 from analysis_pdf import build_cmapss_brief_pdf
 from cmapss_data import (
+    FD_SCENARIO_INFO,
     cmapss_file,
     default_local_test_path,
     list_available_datasets,
@@ -30,14 +31,19 @@ from cmapss_data import (
     sensor_labels_for_ui,
 )
 from eda_charts import (
+    constant_sensors,
     fig_correlation_heatmap,
     fig_max_cycle_per_unit,
-    fig_normalized_ensemble,
+    fig_normalized_ensemble_extended,
     fig_pair_sensors_last_snapshot,
-    fig_rul_histogram,
+    fig_pca_last_snapshot,
+    fig_rul_overview,
     fig_run_length_histogram,
+    fig_sensor_cycle_correlation,
     fig_sensor_std_bar,
     fig_settings_2d,
+    fig_settings_3d,
+    fig_train_test_last_overlay,
     non_constant_sensors,
     sensor_columns,
 )
@@ -210,12 +216,20 @@ def tab_eda(
     rul: np.ndarray | None,
 ):
     st.subheader("Exploratory analysis — plots from your C-MAPSS files")
+    info = FD_SCENARIO_INFO.get(fd.upper(), {})
     st.markdown(
         f"""
-These views use **real columns** from **{fd}** where available. Training data usually gives **longer run-to-failure** traces; 
-test ends before failure and pairs with **RUL_{fd[-3:]}.txt**. Constant sensors (near-zero variance) are common in C-MAPSS and are **dropped** from correlation plots.
+These views use **real columns** from **{fd}** where available. Training runs to failure; test is **censored** and matches **RUL_{fd[-3:]}.txt**.
+Sensors with **near-zero variance** are listed below and **excluded** from correlation / PCA where noted.
         """
     )
+    if info:
+        st.info(
+            f"**NASA scenario ({fd}):** operating conditions = **{info.get('conditions', '?')}**; "
+            f"faults = **{info.get('faults', '?')}**. "
+            f"Readme counts: ~**{info.get('train_engines', '?')}** train engines, ~**{info.get('test_engines', '?')}** test engines."
+        )
+
     eda_train = st.checkbox("Include training split in EDA tables/plots", value=train_df is not None)
     base = train_df if eda_train and train_df is not None else test_df
     if base is None:
@@ -224,14 +238,29 @@ test ends before failure and pairs with **RUL_{fd[-3:]}.txt**. Constant sensors 
         st.warning("No train/test dataframe loaded.")
         return
 
-    m1, m2, m3, m4 = st.columns(4)
+    split_label = "train" if eda_train and train_df is not None else "test"
+    m1, m2, m3, m4, m5, m6 = st.columns(6)
     m1.metric("Rows (EDA base)", f"{len(base):,}")
     m2.metric("Engines", f"{base['unit'].nunique()}")
     m3.metric("Varying sensors", len(non_constant_sensors(base)))
-    m4.metric("RUL values", len(rul) if rul is not None else 0)
+    m4.metric("Constant sensors", len(constant_sensors(base)))
+    m5.metric("Train rows", f"{len(train_df):,}" if train_df is not None else "—")
+    m6.metric("RUL labels", len(rul) if rul is not None else 0)
 
-    st.markdown("#### Correlation (Pearson) — non-constant sensors")
-    st.plotly_chart(fig_correlation_heatmap(base, f"{fd} — sensor correlation ({'train' if eda_train and train_df is not None else 'test'})"), use_container_width=True)
+    const_list = constant_sensors(base)
+    with st.expander("Constant (flat) sensors — often dropped in papers", expanded=False):
+        if const_list:
+            st.write(", ".join(const_list))
+        else:
+            st.write("None detected at default tolerance.")
+
+    st.markdown("#### Correlation matrix (Pearson) — varying sensors only")
+    st.caption("Large tables are **row-sampled** for speed (see plot title).")
+    st.plotly_chart(fig_correlation_heatmap(base, f"{fd} — sensor–sensor | {split_label}"), use_container_width=True)
+
+    st.markdown("#### Trend strength: |corr(sensor, cycle)| (fleet-wide)")
+    st.caption("Higher values suggest the sensor tracks **cycle time** in this split (useful RUL feature candidates).")
+    st.plotly_chart(fig_sensor_cycle_correlation(base, f"{fd} | {split_label}"), use_container_width=True)
 
     st.markdown("#### Run length — last observed cycle per engine")
     if train_df is not None and test_df is not None:
@@ -243,42 +272,70 @@ test ends before failure and pairs with **RUL_{fd[-3:]}.txt**. Constant sensors 
         h1, h2 = st.columns(2)
         with h1:
             st.plotly_chart(
-                fig_run_length_histogram(train_df, f"{fd} — distribution of engine run lengths (train)"),
+                fig_run_length_histogram(train_df, f"{fd} — run length distribution (train)"),
                 use_container_width=True,
             )
         with h2:
             st.plotly_chart(
-                fig_run_length_histogram(test_df, f"{fd} — distribution of engine run lengths (test)"),
+                fig_run_length_histogram(test_df, f"{fd} — run length distribution (test)"),
                 use_container_width=True,
             )
     else:
         st.plotly_chart(fig_max_cycle_per_unit(base, f"{fd} — last cycle per engine"), use_container_width=True)
-        st.plotly_chart(fig_run_length_histogram(base, f"{fd} — distribution of engine run lengths"), use_container_width=True)
+        st.plotly_chart(fig_run_length_histogram(base, f"{fd} — run length distribution"), use_container_width=True)
 
-    st.markdown("#### Operational settings vs cycle (sampled)")
-    st.plotly_chart(fig_settings_2d(base, f"{fd} — settings scatter (color = cycle)"), use_container_width=True)
+    st.markdown("#### Operational settings")
+    cset1, cset2 = st.columns(2)
+    with cset1:
+        st.plotly_chart(fig_settings_2d(base, f"{fd} — settings 1 vs 2 (color=cycle)"), use_container_width=True)
+    with cset2:
+        st.plotly_chart(fig_settings_3d(base, f"{fd} — settings 1–3 (3D)"), use_container_width=True)
 
     st.markdown("#### Sensor variability (global std per channel)")
-    st.plotly_chart(fig_sensor_std_bar(base, f"{fd} — per-sensor standard deviation"), use_container_width=True)
+    st.plotly_chart(fig_sensor_std_bar(base, f"{fd} — per-sensor std"), use_container_width=True)
+
+    if train_df is not None and test_df is not None:
+        st.markdown("#### Train vs test — last-cycle value (same sensor)")
+        v_opts = non_constant_sensors(train_df) or sensor_columns(train_df)
+        cmp_s = st.selectbox("Sensor for train/test comparison", v_opts, index=min(3, len(v_opts) - 1), key="tt_cmp")
+        st.plotly_chart(
+            fig_train_test_last_overlay(train_df, test_df, cmp_s, f"{fd} — {cmp_s} at last observed cycle"),
+            use_container_width=True,
+        )
 
     if rul is not None and len(rul):
-        st.markdown("#### True RUL distribution (test engines)")
-        st.plotly_chart(fig_rul_histogram(rul, f"{fd} — histogram of RUL_FD{fd[-3:]}.txt"), use_container_width=True)
+        st.markdown("#### True RUL (test engines)")
+        st.plotly_chart(fig_rul_overview(rul, f"{fd} — RUL_FD{fd[-3:]}.txt"), use_container_width=True)
 
-    st.markdown("#### Ensemble trend vs normalized engine life")
-    st.caption("For each engine, cycles are divided by that engine's max cycle; curves are averaged across the fleet (first 3 varying sensors).")
-    vcols = non_constant_sensors(base)[:3]
-    if not vcols:
-        vcols = sensor_columns(base)[:3]
-    st.plotly_chart(fig_normalized_ensemble(base, vcols, f"{fd} — mean sensor vs normalized life"), use_container_width=True)
+    st.markdown("#### Ensemble degradation shape — mean vs normalized engine life")
+    v_all = non_constant_sensors(base)
+    default_pick = v_all[:4] if len(v_all) >= 4 else v_all
+    if not default_pick:
+        default_pick = sensor_columns(base)[:4]
+    pick_life = st.multiselect(
+        "Sensors to average (up to 4)",
+        options=v_all or sensor_columns(base),
+        default=default_pick[:4],
+        max_selections=4,
+        key="ens_pick",
+    )
+    if pick_life:
+        st.plotly_chart(
+            fig_normalized_ensemble_extended(base, pick_life, f"{fd} — fleet-mean trajectory | {split_label}"),
+            use_container_width=True,
+        )
+
+    st.markdown("#### PCA — last snapshot (engines as points)")
+    st.caption("Standardized **varying** sensors at each engine’s **last** cycle; PC axes from SVD.")
+    st.plotly_chart(fig_pca_last_snapshot(base, f"{fd} | {split_label}"), use_container_width=True)
 
     s_opts = non_constant_sensors(base)
     if len(s_opts) >= 2:
-        st.markdown("#### Last-cycle snapshot (per engine)")
+        st.markdown("#### Last-cycle snapshot — pick two sensors")
         s1 = st.selectbox("X sensor", s_opts, index=0, key="pair_x")
         s2 = st.selectbox("Y sensor", s_opts, index=min(1, len(s_opts) - 1), key="pair_y")
         st.plotly_chart(
-            fig_pair_sensors_last_snapshot(base, s1, s2, f"{fd} — final observed point per engine"),
+            fig_pair_sensors_last_snapshot(base, s1, s2, f"{fd} — final point per engine"),
             use_container_width=True,
         )
 

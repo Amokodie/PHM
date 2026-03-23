@@ -7,6 +7,8 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+from plotly_theme import apply_plotly_theme
+
 
 def _paper_plot_bg(template: str) -> tuple[str, str]:
     if template == "plotly_white":
@@ -52,7 +54,7 @@ def fig_training_loss_curves(template: str = "plotly_dark", epochs: int = 120) -
         legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0),
         margin=dict(l=50, r=20, t=60, b=40),
     )
-    return fig
+    return apply_plotly_theme(fig, template)
 
 
 def fig_radar_three_way(template: str = "plotly_dark") -> go.Figure:
@@ -110,7 +112,7 @@ def fig_radar_three_way(template: str = "plotly_dark") -> go.Figure:
         title="Qualitative comparison — discussion scores only",
         margin=dict(l=40, r=40, t=50, b=40),
     )
-    return fig
+    return apply_plotly_theme(fig, template)
 
 
 def fig_loss_components_bar(template: str = "plotly_dark") -> go.Figure:
@@ -141,7 +143,7 @@ def fig_loss_components_bar(template: str = "plotly_dark") -> go.Figure:
         legend=dict(orientation="h", yanchor="bottom", y=1.05, x=0),
         margin=dict(l=50, r=20, t=60, b=40),
     )
-    return fig
+    return apply_plotly_theme(fig, template)
 
 
 def fig_sensor_window_physics_attention(template: str = "plotly_dark") -> go.Figure:
@@ -183,4 +185,4 @@ def fig_sensor_window_physics_attention(template: str = "plotly_dark") -> go.Fig
         plot_bgcolor=plot_bg,
         margin=dict(l=40, r=20, t=50, b=40),
     )
-    return fig
+    return apply_plotly_theme(fig, template)

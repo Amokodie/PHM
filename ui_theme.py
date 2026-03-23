@@ -321,6 +321,19 @@ def _light_interactive_widgets_css() -> str:
     color: {sec_fg} !important;
     background: transparent !important;
   }}
+  /* ---- Dataframes: avoid dark glass blocks on white page ---- */
+  .stApp [data-testid="stDataFrame"],
+  .stApp [data-testid="stDataFrame"] > div,
+  .stApp [data-testid="stDataFrame"] [class*="glide"] {{
+    background-color: rgba(248, 250, 252, 0.92) !important;
+    color: {sec_fg} !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+  }}
+  .stApp [data-testid="stDataFrame"] [role="gridcell"],
+  .stApp [data-testid="stDataFrame"] [role="columnheader"] {{
+    color: {sec_fg} !important;
+  }}
 """
 
 

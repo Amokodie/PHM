@@ -229,76 +229,98 @@ def _shell_css(t: dict[str, str]) -> str:
 
 def _light_interactive_widgets_css() -> str:
     """
-    Streamlit [theme] is dark-first; Base Web still paints secondary buttons / tabs / selects
-    with dark surfaces in Light mode — black blocks and text only visible on hover.
+    Streamlit [theme] is dark-first; Base Web can still paint dark surfaces on tabs / buttons / selects.
+    Match Streamlit's *secondary* button look: #f1f5f9 bg, #0f172a text, #cbd5e1 border (same as a good download button).
     """
-    return """
-  /* Primary / theme tokens for light UI */
-  .stApp {
+    # Shared "secondary control" look (user-requested: like Download analysis brief)
+    sec_bg = "#f1f5f9"
+    sec_fg = "#0f172a"
+    sec_border = "#cbd5e1"
+    return f"""
+  .stApp {{
     --primary-color: #0284c7 !important;
-    --text-color: #0f172a !important;
-  }
-  /* Tabs: visible surfaces + text (not dark-theme black) */
-  .stApp [data-baseweb="tab-list"] {
-    background-color: #f1f5f9 !important;
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 10px !important;
-  }
-  .stApp [data-baseweb="tab"] {
+    --text-color: {sec_fg} !important;
+  }}
+  /* ---- Tabs: pill style = secondary button (all labels visible, no black fill) ---- */
+  .stApp .stTabs [data-baseweb="tab-list"],
+  .stApp [data-testid="stTabs"] [data-baseweb="tab-list"] {{
     background-color: #f8fafc !important;
-    color: #334155 !important;
-    border: 1px solid transparent !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    padding: 8px !important;
+    gap: 8px !important;
+    flex-wrap: wrap !important;
+  }}
+  .stApp .stTabs [data-baseweb="tab"],
+  .stApp [data-testid="stTabs"] [data-baseweb="tab"],
+  .stApp .stTabs [role="tab"] {{
+    background-color: {sec_bg} !important;
+    color: {sec_fg} !important;
+    border: 1px solid {sec_border} !important;
+    border-radius: 8px !important;
     opacity: 1 !important;
-  }
-  .stApp [data-baseweb="tab"]:hover {
+    box-shadow: none !important;
+  }}
+  .stApp .stTabs [data-baseweb="tab"]:hover,
+  .stApp [data-testid="stTabs"] [data-baseweb="tab"]:hover {{
     background-color: #e2e8f0 !important;
-    color: #0f172a !important;
-  }
-  .stApp [data-baseweb="tab"][aria-selected="true"] {
+    color: {sec_fg} !important;
+  }}
+  .stApp .stTabs [data-baseweb="tab"][aria-selected="true"],
+  .stApp [data-testid="stTabs"] [data-baseweb="tab"][aria-selected="true"] {{
     background-color: #ffffff !important;
-    color: #0f172a !important;
-    border: 1px solid #cbd5e1 !important;
+    color: {sec_fg} !important;
+    border: 2px solid #0284c7 !important;
     font-weight: 600 !important;
-  }
-  .stApp [data-baseweb="tab"] span,
-  .stApp [data-baseweb="tab"] p {
-    color: inherit !important;
+  }}
+  .stApp .stTabs [data-baseweb="tab"] *,
+  .stApp [data-testid="stTabs"] [data-baseweb="tab"] *,
+  .stApp .stTabs [role="tab"] * {{
+    color: {sec_fg} !important;
     opacity: 1 !important;
-  }
-  /* Download buttons default to secondary — force readable filled style */
+  }}
+  .stApp .stTabs [data-baseweb="tab-highlight"] {{
+    display: none !important;
+  }}
+  /* ---- Download buttons: uniform secondary (gray) — not primary blue ---- */
   .stApp [data-testid="stDownloadButton"] button,
-  .stApp [data-testid="stDownloadButton"] [data-baseweb="button"] {
-    background-color: #0284c7 !important;
-    color: #ffffff !important;
-    border: 1px solid #0369a1 !important;
+  .stApp [data-testid="stDownloadButton"] [data-baseweb="button"] {{
+    background-color: {sec_bg} !important;
+    color: {sec_fg} !important;
+    border: 1px solid {sec_border} !important;
+    border-radius: 0.5rem !important;
     opacity: 1 !important;
-  }
-  .stApp [data-testid="stDownloadButton"] button span,
-  .stApp [data-testid="stDownloadButton"] button p {
-    color: #ffffff !important;
-  }
-  /* Sidebar selectbox: light control surface */
-  section[data-testid="stSidebar"] [data-baseweb="select"] > div,
-  section[data-testid="stSidebar"] [data-baseweb="select"] [class*="control"] {
+  }}
+  .stApp [data-testid="stDownloadButton"] button *,
+  .stApp [data-testid="stDownloadButton"] [data-baseweb="button"] * {{
+    color: {sec_fg} !important;
+    opacity: 1 !important;
+  }}
+  .stApp [data-testid="stDownloadButton"] svg {{
+    fill: {sec_fg} !important;
+  }}
+  /* ---- Select (sidebar + main): light surface ---- */
+  .stApp [data-baseweb="select"] > div,
+  .stApp [data-baseweb="select"] [class*="control"] {{
     background-color: #ffffff !important;
-    color: #0f172a !important;
-    border: 1px solid #cbd5e1 !important;
-  }
-  section[data-testid="stSidebar"] [data-baseweb="select"] svg {
-    fill: #0f172a !important;
-  }
+    color: {sec_fg} !important;
+    border: 1px solid {sec_border} !important;
+  }}
+  .stApp [data-baseweb="select"] svg {{
+    fill: {sec_fg} !important;
+  }}
   /* Sidebar code / install hints */
   section[data-testid="stSidebar"] [data-testid="stCode"],
-  section[data-testid="stSidebar"] pre {
+  section[data-testid="stSidebar"] pre {{
     background-color: #f8fafc !important;
-    color: #0f172a !important;
+    color: {sec_fg} !important;
     border: 1px solid #e2e8f0 !important;
-  }
+  }}
   section[data-testid="stSidebar"] [data-testid="stCode"] code,
-  section[data-testid="stSidebar"] pre code {
-    color: #0f172a !important;
+  section[data-testid="stSidebar"] pre code {{
+    color: {sec_fg} !important;
     background: transparent !important;
-  }
+  }}
 """
 
 

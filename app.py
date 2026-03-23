@@ -92,7 +92,17 @@ def _mermaid_components_html(diagram: str, *, theme: str = "dark", height: int =
   el.className = "mermaid";
   el.textContent = txt;
   document.getElementById("mroot").appendChild(el);
-  mermaid.initialize({{ startOnLoad: false, theme: theme, securityLevel: "loose" }});
+  mermaid.initialize({{
+    startOnLoad: false,
+    theme: theme,
+    securityLevel: "loose",
+    flowchart: {{
+      htmlLabels: false,
+      curve: "linear",
+      padding: 16,
+      useMaxWidth: true
+    }}
+  }});
   mermaid.run().catch(function(err) {{
     document.getElementById("mroot").innerHTML = "<pre style=color:#f87171;font:12px monospace;white-space:pre-wrap;padding:8px;>" +
       (err && err.message ? err.message : String(err)) + "</pre>";
@@ -538,8 +548,8 @@ sequence modeling (**Transformer**), and **physics constraints** (**PINN**) in o
         """
         flowchart TD
             A["Fleet time series - 26 channels per cycle"] --> B["Data budget"]
-            B -->|large diverse data| C["Seq model Transformer or CNN"]
-            B -->|sparse engines| D["PINN data plus physics loss"]
+            B --> C["Seq model Transformer or CNN"]
+            B --> D["PINN data plus physics loss"]
             C --> E["Residual vs physics baselines"]
             D --> F["Wear in loss"]
             E --> G["Hybrid GNN Transformer PINN"]
@@ -548,6 +558,9 @@ sequence modeling (**Transformer**), and **physics constraints** (**PINN**) in o
         """
     )
     _mermaid_components_html(mermaid, theme=mm_arch, height=420)
+    st.caption(
+        "**Data budget:** *high coverage* → seq. models; *sparse engines* → PINN-style physics loss."
+    )
 
 
 def tab_cnn_pinn_lab():
@@ -619,7 +632,6 @@ or **PINNs** (supervised fit + physics / wear residuals). Curves and radars are 
                 S1[Sensors] --> N1[Network]
                 N1 --> R1[Wear residual]
                 R1 --> L1[Total loss]
-                S1 --> L1
             end
             H1 --> FD["C-MAPSS FD001-FD004"]
             H2 --> FD

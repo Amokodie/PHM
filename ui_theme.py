@@ -8,7 +8,7 @@ import streamlit as st
 def _svg_turbofan_corner(for_light: bool) -> str:
     """Slightly visible engine motif — bottom-right."""
     stroke = "%23475569" if for_light else "%2338bdf8"
-    op = "0.11" if for_light else "0.09"
+    op = "0.16" if for_light else "0.14"
     return (
         "%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='320' viewBox='0 0 420 320'%3E"
         f"%3Cg fill='none' stroke='{stroke}' stroke-opacity='{op}' stroke-width='1.2'%3E"
@@ -40,6 +40,9 @@ def inject_engineering_theme(mode: str = "dark") -> None:
             "linear-gradient(180deg, #f8fafc 0%, #eef1f5 45%, #e8edf3 100%)"
         )
         app_css = f"""
+  html, body {{
+    background-color: {bg_core} !important;
+  }}
   .stApp {{
     background-color: {bg_core} !important;
     background-image: {grad}, url("data:image/svg+xml,{svg}") !important;
@@ -62,6 +65,18 @@ def inject_engineering_theme(mode: str = "dark") -> None:
     background: transparent !important;
   }}
   .main > div {{
+    background: transparent !important;
+  }}
+  section[data-testid="stMain"] .block-container {{
+    background: transparent !important;
+  }}
+  section[data-testid="stMain"] [class*="block-container"] {{
+    background: transparent !important;
+  }}
+  section[data-testid="stMain"] [data-testid="stVerticalBlockBorderWrapper"] {{
+    background: transparent !important;
+  }}
+  section[data-testid="stMain"] [data-testid="stVerticalBlock"] {{
     background: transparent !important;
   }}
   [data-testid="stHeader"] {{
@@ -109,6 +124,9 @@ def inject_engineering_theme(mode: str = "dark") -> None:
             "linear-gradient(180deg, #060a10 0%, #0a0f18 40%, #0c121c 100%)"
         )
         app_css = f"""
+  html, body {{
+    background-color: {bg_core} !important;
+  }}
   .stApp {{
     background-color: {bg_core} !important;
     background-image: {grad}, url("data:image/svg+xml,{svg}") !important;
@@ -131,6 +149,18 @@ def inject_engineering_theme(mode: str = "dark") -> None:
     background: transparent !important;
   }}
   .main > div {{
+    background: transparent !important;
+  }}
+  section[data-testid="stMain"] .block-container {{
+    background: transparent !important;
+  }}
+  section[data-testid="stMain"] [class*="block-container"] {{
+    background: transparent !important;
+  }}
+  section[data-testid="stMain"] [data-testid="stVerticalBlockBorderWrapper"] {{
+    background: transparent !important;
+  }}
+  section[data-testid="stMain"] [data-testid="stVerticalBlock"] {{
     background: transparent !important;
   }}
   [data-testid="stHeader"] {{
@@ -174,14 +204,12 @@ def inject_engineering_theme(mode: str = "dark") -> None:
   }}
         """
 
-    st.markdown(
-        f"""
-<style>
-{app_css}
-</style>
-        """,
-        unsafe_allow_html=True,
-    )
+    # Prefer st.html (unsanitized); markdown can strip or alter <style> on some hosts.
+    style_block = f"<style>{app_css}</style>"
+    if hasattr(st, "html"):
+        st.html(style_block)
+    else:
+        st.markdown(style_block, unsafe_allow_html=True)
 
 
 def hero_engineering_ribbon(mode: str = "dark") -> None:

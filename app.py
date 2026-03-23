@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import base64
 import io
+import json
 import os
 import textwrap
 
@@ -64,6 +65,44 @@ from ui_theme import hero_engineering_ribbon, inject_engineering_theme, plotly_t
 def _mermaid_src(block: str) -> str:
     """Strip Python indentation so Mermaid sees node ids at column 0 (Mermaid 10 is strict)."""
     return textwrap.dedent(block).strip()
+
+
+def _mermaid_components_html(diagram: str, *, theme: str = "dark", height: int = 420) -> None:
+    """
+    Render Mermaid in an iframe without putting raw graph text inside HTML (avoids '-->' etc. breaking HTML).
+    Uses Mermaid 10 run() API with UTF-8-safe base64.
+    """
+    b64 = base64.b64encode(diagram.encode("utf-8")).decode("ascii")
+    b64_lit = json.dumps(b64)
+    theme_lit = json.dumps(theme)
+    components.html(
+        f"""
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>body{{margin:0;padding:6px 8px;background:transparent;}}</style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.5/dist/mermaid.min.js"></script>
+</head><body>
+<div id="mroot"></div>
+<script>
+(function() {{
+  const b64 = {b64_lit};
+  const theme = {theme_lit};
+  const txt = new TextDecoder().decode(Uint8Array.from(atob(b64), function(c) {{ return c.charCodeAt(0); }}));
+  const el = document.createElement("div");
+  el.className = "mermaid";
+  el.textContent = txt;
+  document.getElementById("mroot").appendChild(el);
+  mermaid.initialize({{ startOnLoad: false, theme: theme, securityLevel: "loose" }});
+  mermaid.run().catch(function(err) {{
+    document.getElementById("mroot").innerHTML = "<pre style=color:#f87171;font:12px monospace;white-space:pre-wrap;padding:8px;>" +
+      (err && err.message ? err.message : String(err)) + "</pre>";
+  }});
+}})();
+</script>
+</body></html>
+        """,
+        height=height,
+    )
 
 
 st.set_page_config(
@@ -493,12 +532,12 @@ sequence modeling (**Transformer**), and **physics constraints** (**PINN**) in o
     st.dataframe(matrix, hide_index=True, use_container_width=True)
 
     st.markdown("#### Why PINN can be “safer” than a pure black-box for aerospace")
-    # Mermaid 10.9.x: dedent lines (leading spaces break ids); rhombus use B{Data budget}
-    # not B{"Data budget?"} — the ? inside quoted braces triggers parse errors.
+    # Rectangle nodes only; avoid rhombus and raw HTML embedding of graph text.
+    mm_arch = "neutral" if st.session_state.get("ui_theme", "dark") == "light" else "dark"
     mermaid = _mermaid_src(
         """
         flowchart TD
-            A["Fleet time series - 26 ch per cycle"] --> B{Data budget}
+            A["Fleet time series - 26 channels per cycle"] --> B["Data budget"]
             B -->|large diverse data| C["Seq model Transformer or CNN"]
             B -->|sparse engines| D["PINN data plus physics loss"]
             C --> E["Residual vs physics baselines"]
@@ -508,18 +547,7 @@ sequence modeling (**Transformer**), and **physics constraints** (**PINN**) in o
             G --> H["Monitoring assurance drift faults"]
         """
     )
-    components.html(
-        f"""
-<!DOCTYPE html>
-<html><head><meta charset="utf-8">
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-</head><body>
-<div class="mermaid">{mermaid}</div>
-<script>mermaid.initialize({{startOnLoad:true, theme:'dark'}});</script>
-</body></html>
-        """,
-        height=420,
-    )
+    _mermaid_components_html(mermaid, theme=mm_arch, height=420)
 
 
 def tab_cnn_pinn_lab():
@@ -599,18 +627,7 @@ or **PINNs** (supervised fit + physics / wear residuals). Curves and radars are 
         """
     )
     st.markdown("#### Architecture flow (qualitative)")
-    components.html(
-        f"""
-<!DOCTYPE html>
-<html><head><meta charset="utf-8">
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-</head><body>
-<div class="mermaid">{mermaid}</div>
-<script>mermaid.initialize({{startOnLoad:true, theme:'{mm_theme}'}});</script>
-</body></html>
-        """,
-        height=340,
-    )
+    _mermaid_components_html(mermaid, theme=mm_theme, height=340)
 
     with st.expander("Implementation checklist (for your assignment code)", expanded=False):
         st.markdown(
